@@ -11,13 +11,13 @@ A modern, responsive website for JT Trauma Therapy - providing rapid trauma ther
 
 ## Tech Stack
 
-- HTML5, CSS3, JavaScript
+- HTML5, CSS, JavaScript
 - Supabase for backend services
 - Static site deployment
 
 ## Getting Started
 
-Simply open rontend/index.html in your browser to view the site locally.
+Simply open frontend/index.html in your browser to view the site locally.
 
 ## Database Setup
 
