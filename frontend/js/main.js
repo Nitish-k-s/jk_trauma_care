@@ -21,6 +21,27 @@
         ERROR: 'error'
     };
 
+    // Optimized debounce function
+    const debounce = (func, wait) => {
+        let timeout;
+        return (...args) => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), wait);
+        };
+    };
+
+    // Throttle function for scroll events
+    const throttle = (func, limit) => {
+        let inThrottle;
+        return (...args) => {
+            if (!inThrottle) {
+                func.apply(this, args);
+                inThrottle = true;
+                setTimeout(() => inThrottle = false, limit);
+            }
+        };
+    };
+
     // Mobile navigation toggle
     function initMobileNav() {
         const navToggle = document.querySelector('.nav__toggle');
@@ -28,88 +49,93 @@
         
         if (!navToggle || !nav) return;
 
-        // Create mobile nav list
+        // Create mobile nav list only when needed
         let mobileNavList = nav.querySelector('.nav__list--mobile');
-        if (!mobileNavList) {
-            const originalNavList = nav.querySelector('.nav__list');
-            if (originalNavList) {
-                mobileNavList = originalNavList.cloneNode(true);
-                mobileNavList.classList.add('nav__list--mobile');
-                nav.appendChild(mobileNavList);
+        
+        const createMobileNav = () => {
+            if (!mobileNavList) {
+                const originalNavList = nav.querySelector('.nav__list');
+                if (originalNavList) {
+                    mobileNavList = originalNavList.cloneNode(true);
+                    mobileNavList.classList.add('nav__list--mobile');
+                    nav.appendChild(mobileNavList);
+                    
+                    // Add event listeners to mobile nav links
+                    const mobileNavLinks = mobileNavList.querySelectorAll('.nav__link');
+                    mobileNavLinks.forEach(link => {
+                        link.addEventListener('click', () => {
+                            toggleNav();
+                        });
+                    });
+                }
             }
-        }
+        };
 
-        navToggle.addEventListener('click', function() {
+        const toggleNav = () => {
             const isExpanded = navToggle.getAttribute('aria-expanded') === 'true';
             
             navToggle.setAttribute('aria-expanded', !isExpanded);
+            
+            if (!mobileNavList) createMobileNav();
             
             if (mobileNavList) {
                 mobileNavList.classList.toggle('nav__list--open');
             }
             
-            // Animate hamburger bars
+            // Animate hamburger bars with transform
             const bars = navToggle.querySelectorAll('.nav__toggle-bar');
-            bars.forEach((bar, index) => {
-                if (!isExpanded) {
-                    if (index === 0) bar.style.transform = 'rotate(45deg) translate(6px, 6px)';
-                    if (index === 1) bar.style.opacity = '0';
-                    if (index === 2) bar.style.transform = 'rotate(-45deg) translate(6px, -6px)';
-                } else {
-                    bar.style.transform = '';
-                    bar.style.opacity = '';
-                }
-            });
-        });
-
-        // Close mobile nav when clicking on links
-        if (mobileNavList) {
-            const mobileNavLinks = mobileNavList.querySelectorAll('.nav__link');
-            mobileNavLinks.forEach(link => {
-                link.addEventListener('click', () => {
-                    navToggle.click();
+            requestAnimationFrame(() => {
+                bars.forEach((bar, index) => {
+                    if (!isExpanded) {
+                        if (index === 0) bar.style.transform = 'rotate(45deg) translate(6px, 6px)';
+                        if (index === 1) bar.style.opacity = '0';
+                        if (index === 2) bar.style.transform = 'rotate(-45deg) translate(6px, -6px)';
+                    } else {
+                        bar.style.transform = '';
+                        bar.style.opacity = '';
+                    }
                 });
             });
-        }
+        };
+
+        navToggle.addEventListener('click', toggleNav);
 
         // Close mobile nav when clicking outside
-        document.addEventListener('click', function(e) {
-            if (!nav.contains(e.target) && mobileNavList && mobileNavList.classList.contains('nav__list--open')) {
-                navToggle.click();
+        document.addEventListener('click', (e) => {
+            if (!nav.contains(e.target) && mobileNavList?.classList.contains('nav__list--open')) {
+                toggleNav();
             }
         });
     }
 
     // Smooth scrolling for anchor links
     function initSmoothScrolling() {
-        const links = document.querySelectorAll('a[href^="#"]');
-        
-        links.forEach(link => {
-            link.addEventListener('click', function(e) {
-                const href = this.getAttribute('href');
+        document.addEventListener('click', (e) => {
+            const link = e.target.closest('a[href^="#"]');
+            if (!link) return;
+            
+            const href = link.getAttribute('href');
+            if (href === '#') {
+                e.preventDefault();
+                return;
+            }
+            
+            const target = document.querySelector(href);
+            if (target) {
+                e.preventDefault();
                 
-                if (href === '#') {
-                    e.preventDefault();
-                    return;
-                }
+                const headerHeight = document.querySelector('.header')?.offsetHeight || 0;
+                const targetPosition = target.offsetTop - headerHeight - 20;
                 
-                const target = document.querySelector(href);
-                if (target) {
-                    e.preventDefault();
-                    
-                    const headerHeight = document.querySelector('.header').offsetHeight;
-                    const targetPosition = target.offsetTop - headerHeight - 20;
-                    
-                    window.scrollTo({
-                        top: targetPosition,
-                        behavior: 'smooth'
-                    });
-                }
-            });
+                window.scrollTo({
+                    top: targetPosition,
+                    behavior: 'smooth'
+                });
+            }
         });
     }
 
-    // Form validation
+    // Optimized form validation
     function validateField(field) {
         const value = field.value.trim();
         const fieldName = field.name;
@@ -189,83 +215,74 @@
 
         let currentState = FORM_STATES.IDLE;
 
-        function setFormState(state) {
+        const setFormState = (state) => {
             currentState = state;
             
-            switch (state) {
-                case FORM_STATES.IDLE:
-                    submitButton.classList.remove('btn--loading');
-                    submitButton.disabled = false;
-                    successMessage?.classList.remove('show');
-                    break;
-                case FORM_STATES.SUBMITTING:
-                    submitButton.classList.add('btn--loading');
-                    submitButton.disabled = true;
-                    break;
-                case FORM_STATES.SUCCESS:
-                    submitButton.classList.remove('btn--loading');
-                    submitButton.disabled = false;
-                    successMessage?.classList.add('show');
-                    form.reset();
-                    break;
-                case FORM_STATES.ERROR:
-                    submitButton.classList.remove('btn--loading');
-                    submitButton.disabled = false;
-                    break;
-            }
-        }
-
-        // Real-time validation
-        const formFields = form.querySelectorAll('input, select, textarea');
-        formFields.forEach(field => {
-            field.addEventListener('blur', () => validateField(field));
-            field.addEventListener('input', () => {
-                if (field.classList.contains('form__input--error')) {
-                    validateField(field);
+            requestAnimationFrame(() => {
+                switch (state) {
+                    case FORM_STATES.IDLE:
+                        submitButton.classList.remove('btn--loading');
+                        submitButton.disabled = false;
+                        successMessage?.classList.remove('show');
+                        break;
+                    case FORM_STATES.SUBMITTING:
+                        submitButton.classList.add('btn--loading');
+                        submitButton.disabled = true;
+                        break;
+                    case FORM_STATES.SUCCESS:
+                        submitButton.classList.remove('btn--loading');
+                        submitButton.disabled = false;
+                        successMessage?.classList.add('show');
+                        form.reset();
+                        break;
+                    case FORM_STATES.ERROR:
+                        submitButton.classList.remove('btn--loading');
+                        submitButton.disabled = false;
+                        break;
                 }
             });
+        };
+
+        // Real-time validation with optimized debouncing
+        const formFields = form.querySelectorAll('input, select, textarea');
+        const debouncedValidation = debounce(validateField, 250);
+        
+        formFields.forEach(field => {
+            field.addEventListener('blur', () => validateField(field), { passive: true });
+            field.addEventListener('input', () => {
+                if (field.classList.contains('form__input--error')) {
+                    debouncedValidation(field);
+                }
+            }, { passive: true });
         });
 
         // Form submission
-        form.addEventListener('submit', async function(e) {
+        form.addEventListener('submit', async (e) => {
             e.preventDefault();
             
             if (currentState === FORM_STATES.SUBMITTING) return;
 
             // Validate all fields
             let isFormValid = true;
-            formFields.forEach(field => {
+            for (const field of formFields) {
                 if (!validateField(field)) {
                     isFormValid = false;
                 }
-            });
+            }
 
             if (!isFormValid) {
                 // Focus first error field
                 const firstError = form.querySelector('.form__input--error');
-                if (firstError) {
-                    firstError.focus();
-                }
+                firstError?.focus();
                 return;
             }
 
             setFormState(FORM_STATES.SUBMITTING);
 
             try {
-                // Simulate form submission (replace with actual endpoint)
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                // Simulate form submission
+                await new Promise(resolve => setTimeout(resolve, 800));
                 
-                // In production, replace with actual form submission:
-                // const formData = new FormData(form);
-                // const response = await fetch('/api/booking', {
-                //     method: 'POST',
-                //     body: formData
-                // });
-                // 
-                // if (!response.ok) {
-                //     throw new Error('Submission failed');
-                // }
-
                 setFormState(FORM_STATES.SUCCESS);
                 
                 // Scroll to success message
@@ -277,184 +294,134 @@
             } catch (error) {
                 setFormState(FORM_STATES.ERROR);
                 console.error('Form submission error:', error);
-                
-                // Show error message (you can customize this)
                 alert('There was an error submitting your request. Please try again or contact us directly.');
             }
         });
     }
 
-    // Header scroll effect
+    // Optimized header scroll effect
     function initHeaderScroll() {
         const header = document.querySelector('.header');
         if (!header) return;
 
-        let lastScrollY = window.scrollY;
         let ticking = false;
 
-        function updateHeader() {
+        const updateHeader = () => {
             const scrollY = window.scrollY;
             
-            if (scrollY > 50) {
-                // Enhanced dark glass effect when scrolled
-                header.style.background = 'rgba(30, 41, 59, 0.98)';
-                header.style.backdropFilter = 'blur(30px)';
-                header.style.webkitBackdropFilter = 'blur(30px)';
-                header.style.borderColor = 'rgba(59, 130, 246, 0.3)';
-                header.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.2)';
-            } else {
-                // Original dark glass effect
-                header.style.background = 'rgba(30, 41, 59, 0.95)';
-                header.style.backdropFilter = 'blur(20px)';
-                header.style.webkitBackdropFilter = 'blur(20px)';
-                header.style.borderColor = 'rgba(59, 130, 246, 0.2)';
-                header.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.1)';
-            }
-            
-            lastScrollY = scrollY;
-            ticking = false;
-        }
-
-        function requestTick() {
-            if (!ticking) {
-                requestAnimationFrame(updateHeader);
-                ticking = true;
-            }
-        }
-
-        window.addEventListener('scroll', requestTick, { passive: true });
-    }
-
-    // Lazy loading for images
-    function initLazyLoading() {
-        if ('IntersectionObserver' in window) {
-            const imageObserver = new IntersectionObserver((entries, observer) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const img = entry.target;
-                        if (img.dataset.src) {
-                            img.src = img.dataset.src;
-                            img.removeAttribute('data-src');
-                        }
-                        img.classList.add('loaded');
-                        observer.unobserve(img);
-                    }
-                });
-            }, {
-                rootMargin: '50px 0px'
+            requestAnimationFrame(() => {
+                if (scrollY > 100) {
+                    header.classList.add('visible');
+                    header.style.background = 'rgba(0, 0, 0, 0.95)';
+                    header.style.backdropFilter = 'blur(30px)';
+                    header.style.webkitBackdropFilter = 'blur(30px)';
+                    header.style.borderColor = 'rgba(59, 130, 246, 0.5)';
+                    header.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.4)';
+                } else {
+                    header.classList.remove('visible');
+                }
+                ticking = false;
             });
+        };
 
-            const images = document.querySelectorAll('img[data-src]');
-            images.forEach(img => imageObserver.observe(img));
-        }
+        const throttledUpdate = throttle(updateHeader, 16); // ~60fps
+        window.addEventListener('scroll', throttledUpdate, { passive: true });
     }
 
-    // Accessibility enhancements
-    function initAccessibility() {
-        // Skip to main content link
-        const skipLink = document.createElement('a');
-        skipLink.href = '#main';
-        skipLink.textContent = 'Skip to main content';
-        skipLink.className = 'skip-link';
-        skipLink.style.cssText = `
-            position: absolute;
-            top: -40px;
-            left: 6px;
-            background: #5a9fd4;
-            color: white;
-            padding: 8px;
-            text-decoration: none;
-            border-radius: 4px;
-            z-index: 1000;
-            transition: top 0.3s;
-        `;
-        
-        skipLink.addEventListener('focus', () => {
-            skipLink.style.top = '6px';
-        });
-        
-        skipLink.addEventListener('blur', () => {
-            skipLink.style.top = '-40px';
-        });
-        
-        document.body.insertBefore(skipLink, document.body.firstChild);
+    // Lazy loading for images (optimized)
+    function initLazyLoading() {
+        if (!('IntersectionObserver' in window)) return;
 
+        const imageObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    if (img.dataset.src) {
+                        img.src = img.dataset.src;
+                        img.removeAttribute('data-src');
+                    }
+                    img.classList.add('loaded');
+                    imageObserver.unobserve(img);
+                }
+            });
+        }, {
+            rootMargin: '50px 0px',
+            threshold: 0.1
+        });
+
+        const images = document.querySelectorAll('img[data-src]');
+        images.forEach(img => imageObserver.observe(img));
+    }
+
+    // Minimal accessibility enhancements
+    function initAccessibility() {
         // Add main landmark
         const main = document.querySelector('main');
         if (main && !main.id) {
             main.id = 'main';
         }
-
-        // Announce form state changes to screen readers
-        const form = document.getElementById('bookingForm');
-        if (form) {
-            const announcer = document.createElement('div');
-            announcer.setAttribute('aria-live', 'polite');
-            announcer.setAttribute('aria-atomic', 'true');
-            announcer.className = 'sr-only';
-            announcer.style.cssText = `
-                position: absolute;
-                width: 1px;
-                height: 1px;
-                padding: 0;
-                margin: -1px;
-                overflow: hidden;
-                clip: rect(0, 0, 0, 0);
-                white-space: nowrap;
-                border: 0;
-            `;
-            form.appendChild(announcer);
-        }
     }
 
-    // Performance monitoring
-    function initPerformanceMonitoring() {
-        // Log Core Web Vitals if available
-        if ('PerformanceObserver' in window) {
-            try {
-                const observer = new PerformanceObserver((list) => {
-                    list.getEntries().forEach((entry) => {
-                        console.log(`${entry.name}: ${entry.value}`);
-                    });
-                });
-                observer.observe({ entryTypes: ['measure', 'navigation'] });
-            } catch (e) {
-                // Silently fail if not supported
-            }
-        }
+    // Dark mode toggle
+    function initDarkMode() {
+        const themeToggle = document.getElementById('themeToggle');
+        if (!themeToggle) return;
+
+        // Check for saved theme preference or default to light mode
+        const savedTheme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         
-        // Log page load time
-        window.addEventListener('load', () => {
-            const loadTime = performance.now();
-            console.log(`Page loaded in ${Math.round(loadTime)}ms`);
+        if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+            document.body.classList.add('dark-mode');
+        }
+
+        themeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            
+            // Save preference
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        });
+
+        // Listen for system theme changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+            if (!localStorage.getItem('theme')) {
+                if (e.matches) {
+                    document.body.classList.add('dark-mode');
+                } else {
+                    document.body.classList.remove('dark-mode');
+                }
+            }
         });
     }
 
-    // Initialize all functionality
+    // Initialize with performance optimization
     function init() {
+        // Critical functionality first
         initMobileNav();
         initSmoothScrolling();
         initFormHandling();
-        initHeaderScroll();
-        initLazyLoading();
-        initAccessibility();
-        initPerformanceMonitoring();
+        initDarkMode();
+        
+        // Non-critical functionality with idle callback or timeout
+        const initNonCritical = () => {
+            initHeaderScroll();
+            initLazyLoading();
+            initAccessibility();
+        };
+
+        if ('requestIdleCallback' in window) {
+            requestIdleCallback(initNonCritical, { timeout: 2000 });
+        } else {
+            setTimeout(initNonCritical, 50);
+        }
     }
 
-    // Wait for DOM to be ready
+    // Optimized DOM ready check
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
+        document.addEventListener('DOMContentLoaded', init, { once: true });
     } else {
         init();
     }
-
-    // Handle page visibility changes
-    document.addEventListener('visibilitychange', () => {
-        if (document.hidden) {
-            // Page is hidden - pause any non-essential operations
-        } else {
-            // Page is visible again
-        }
-    });
 
 })();
