@@ -289,43 +289,52 @@
             try {
                 // Collect form data
                 const formData = new FormData(form);
-                const bookingData = {
-                    full_name: formData.get('fullName'),
-                    email: formData.get('email'),
-                    age: parseInt(formData.get('age')),
-                    session_type: formData.get('sessionType'),
-                    availability: formData.get('availability'),
-                    notes: formData.get('notes') || null,
-                    created_at: new Date().toISOString()
-                };
+                const fullName = formData.get('fullName');
+                const email = formData.get('email');
+                const age = formData.get('age');
+                const sessionType = formData.get('sessionType');
+                const availability = formData.get('availability');
+                const notes = formData.get('notes') || 'None';
 
-                // Submit to Supabase
-                const { data, error } = await supabase
-                    .from('bookings')
-                    .insert([bookingData]);
+                // Create email subject and body
+                const subject = `New Booking Request - ${fullName}`;
+                const body = `Hello,
 
-                if (error) {
-                    throw error;
-                }
+I would like to book a therapy session with the following details:
+
+Name: ${fullName}
+Email: ${email}
+Age: ${age}
+Preferred Session Type: ${sessionType}
+Availability: ${availability}
+Additional Notes: ${notes}
+
+Please contact me to arrange a suitable time.
+
+Thank you,
+${fullName}`;
+
+                // Create mailto link
+                const mailtoLink = `mailto:rogue6293@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
                 
-                setFormState(FORM_STATES.SUCCESS);
+                // Open email client
+                window.location.href = mailtoLink;
                 
-                // Scroll to success message
-                successMessage?.scrollIntoView({ 
-                    behavior: 'smooth', 
-                    block: 'center' 
-                });
+                // Show success message after a short delay
+                setTimeout(() => {
+                    setFormState(FORM_STATES.SUCCESS);
+                    
+                    // Scroll to success message
+                    successMessage?.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center' 
+                    });
+                }, 500);
 
             } catch (error) {
                 setFormState(FORM_STATES.ERROR);
                 console.error('Form submission error:', error);
-                
-                // Show user-friendly error message
-                let errorMsg = 'There was an error submitting your request. Please try again or contact us directly.';
-                if (error.message.includes('relation "bookings" does not exist')) {
-                    errorMsg = 'Database not set up yet. Please contact us directly at contact@jttraumatherapy.com';
-                }
-                alert(errorMsg);
+                alert('There was an error processing your request. Please try again.');
             }
         });
     }
