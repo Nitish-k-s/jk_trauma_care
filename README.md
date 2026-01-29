@@ -17,7 +17,7 @@ A modern, responsive website for JT Trauma Therapy - providing rapid trauma ther
 
 ## Getting Started
 
-Simply open frontend/index.html in your browser to view the site locally.
+Simply open   frontend/index.html in your browser to view the site locally.
 
 ## Database Setup
 
