@@ -17,7 +17,33 @@ A modern, responsive website for JT Trauma Therapy - providing rapid trauma ther
 
 ## Getting Started
 
-Simply open   frontend/index.html in your browser to view the site locally.
+### Local Development
+
+1. Start a local server:
+   ```bash
+   npm run dev
+   ```
+   Or use Python directly:
+   ```bash
+   cd frontend
+   python -m http.server 8000
+   ```
+
+2. Open http://localhost:8000 in your browser
+
+### Deploy to Vercel
+
+1. Install Vercel CLI:
+   ```bash
+   npm i -g vercel
+   ```
+
+2. Deploy:
+   ```bash
+   vercel --prod
+   ```
+
+Or connect your GitHub repository to Vercel for automatic deployments.
 
 ## Database Setup
 

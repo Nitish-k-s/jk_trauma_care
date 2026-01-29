@@ -1,0 +1,17 @@
+{
+  "name": "jt-trauma-therapy",
+  "version": "1.0.0",
+  "description": "Professional trauma therapy website for modern professionals",
+  "private": true,
+  "scripts": {
+    "dev": "cd frontend && python -m http.server 8000",
+    "preview": "cd frontend && python -m http.server 8000"
+  },
+  "keywords": [
+    "trauma-therapy",
+    "mental-health",
+    "therapy"
+  ],
+  "author": "JT Trauma Therapy",
+  "license": "UNLICENSED"
+}
