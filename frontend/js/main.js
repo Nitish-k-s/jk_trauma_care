@@ -1,10 +1,17 @@
 /**
  * JT Trauma Therapy - Main JavaScript
- * Production-ready, accessible interactions
+ * Production-ready, accessible interactions with Supabase integration
  */
 
 (function() {
     'use strict';
+
+    // Supabase configuration
+    const SUPABASE_URL = 'https://tozcjiolexyczaaejhsf.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvemNqaW9sZXh5Y3phYWVqaHNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2ODQ4OTMsImV4cCI6MjA4NTI2MDg5M30.WCx3bxksjUFL11CaB0shfWuq9q6n3MLxpMoJ8YhfzoA';
+    
+    // Initialize Supabase client
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // Form validation patterns
     const VALIDATION_PATTERNS = {
@@ -280,8 +287,26 @@
             setFormState(FORM_STATES.SUBMITTING);
 
             try {
-                // Simulate form submission
-                await new Promise(resolve => setTimeout(resolve, 800));
+                // Collect form data
+                const formData = new FormData(form);
+                const bookingData = {
+                    full_name: formData.get('fullName'),
+                    email: formData.get('email'),
+                    age: parseInt(formData.get('age')),
+                    session_type: formData.get('sessionType'),
+                    availability: formData.get('availability'),
+                    notes: formData.get('notes') || null,
+                    created_at: new Date().toISOString()
+                };
+
+                // Submit to Supabase
+                const { data, error } = await supabase
+                    .from('bookings')
+                    .insert([bookingData]);
+
+                if (error) {
+                    throw error;
+                }
                 
                 setFormState(FORM_STATES.SUCCESS);
                 
@@ -294,7 +319,13 @@
             } catch (error) {
                 setFormState(FORM_STATES.ERROR);
                 console.error('Form submission error:', error);
-                alert('There was an error submitting your request. Please try again or contact us directly.');
+                
+                // Show user-friendly error message
+                let errorMsg = 'There was an error submitting your request. Please try again or contact us directly.';
+                if (error.message.includes('relation "bookings" does not exist')) {
+                    errorMsg = 'Database not set up yet. Please contact us directly at contact@jttraumatherapy.com';
+                }
+                alert(errorMsg);
             }
         });
     }
